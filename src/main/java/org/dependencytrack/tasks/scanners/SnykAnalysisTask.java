@@ -107,19 +107,6 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                 && component.getPurl().getVersion() != null;
     }
 
-    /**
-     * Determines if the {@link SnykAnalysisTask} should analyze the specified PackageURL.
-     *
-     * @param purl the PackageURL to analyze
-     * @return true if SnykAnalysisTask should analyze, false if not
-     */
-    public boolean shouldAnalyze(final PackageURL purl) {
-        if (purl == null) {
-            return false;
-        }
-        return !isCacheCurrent(Vulnerability.Source.SNYK, API_BASE_URL, purl.toString());
-    }
-
     private String parsePurlToSnykUrlParam(PackageURL purl) {
 
         String url = purl.getScheme() + "%3A" + purl.getType() + "%2f";
@@ -164,7 +151,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
 
             final JSONObject data = object.optJSONObject("data");
             if (data != null) {
-                final JSONObject attributes = object.optJSONObject("attributes");
+                final JSONObject attributes = data.optJSONObject("attributes");
                 if (attributes != null) {
 
                     String purl = attributes.optString("purl", null);
@@ -181,7 +168,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                 vulnerability.setSource(Vulnerability.Source.SNYK);
                                 vulnerability.setVulnId(snykVuln.optString("id", null));
 
-                                final JSONArray links = snykVuln.optJSONArray("link");
+                                final JSONArray links = snykVuln.optJSONArray("links");
                                 if (links != null) {
                                     final StringBuilder sb = new StringBuilder();
                                     for (int j = 0; j < links.length(); j++) {
@@ -200,7 +187,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                     vulnerability.setPublished(Date.from(jsonStringToTimestamp(vulnAttributes.optString("publication_time")).toInstant()));
                                     vulnerability.setUpdated(Date.from(jsonStringToTimestamp(vulnAttributes.optString("modification_time")).toInstant()));
 
-                                    final JSONArray cweIds = snykVuln.optJSONArray("cwe_ids");
+                                    final JSONArray cweIds = vulnAttributes.optJSONArray("cwe_ids");
                                     if (cweIds != null) {
                                         for (int j = 0; j < cweIds.length(); j++) {
                                             final Cwe cwe = CweResolver.getInstance().resolve(qm, cweIds.optString(j));
@@ -210,7 +197,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                         }
                                     }
 
-                                    final JSONArray cvssArray = snykVuln.optJSONArray("cvss_details");
+                                    final JSONArray cvssArray = vulnAttributes.optJSONArray("cvss_details");
                                     if (cvssArray != null) {
                                         final JSONObject cvss = cvssArray.getJSONObject(0);
                                         if (cvss != null) {
