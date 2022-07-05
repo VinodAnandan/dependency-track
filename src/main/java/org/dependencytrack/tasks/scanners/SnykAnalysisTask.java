@@ -23,6 +23,7 @@ import alpine.common.util.Pageable;
 import alpine.event.framework.Event;
 import alpine.event.framework.Subscriber;
 import alpine.model.ConfigProperty;
+import alpine.security.crypto.DataEncryption;
 import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
 import kong.unirest.*;
@@ -76,7 +77,12 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                     LOGGER.error("Please provide API token for use with Snyk");
                     return;
                 }
-                apiToken = "token " + apiTokenProperty.getPropertyValue();
+                try {
+                    apiToken = "token " + DataEncryption.decryptAsString(apiTokenProperty.getPropertyValue());
+                } catch (Exception ex) {
+                    LOGGER.error("An error occurred decrypting the Snyk API Token. Skipping", ex);
+                    return;
+                }
             }
             final SnykAnalysisEvent event = (SnykAnalysisEvent) e;
             LOGGER.info("Starting Snyk vulnerability analysis task");
