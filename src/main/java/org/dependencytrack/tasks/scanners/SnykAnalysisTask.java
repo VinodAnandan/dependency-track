@@ -116,7 +116,12 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
 
     private String parsePurlToSnykUrlParam(PackageURL purl) {
 
-        return purl.getScheme() + "%3A" + purl.getType() + "%2f" + purl.getName() + "%40" + purl.getVersion();
+        String url = purl.getScheme() + "%3A" + purl.getType() + "%2f";
+        if (purl.getNamespace() != null) {
+            url = url + purl.getNamespace() + "%2f";
+        }
+        url = url + purl.getName() + "%40" + purl.getVersion();
+        return url;
     }
 
     /**
