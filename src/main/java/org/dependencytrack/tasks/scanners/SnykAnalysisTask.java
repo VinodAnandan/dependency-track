@@ -76,7 +76,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                     LOGGER.error("Please provide API token for use with Snyk");
                     return;
                 }
-                apiToken = apiTokenProperty.getPropertyValue();
+                apiToken = "token " + apiTokenProperty.getPropertyValue();
             }
             final SnykAnalysisEvent event = (SnykAnalysisEvent) e;
             LOGGER.info("Starting Snyk vulnerability analysis task");
