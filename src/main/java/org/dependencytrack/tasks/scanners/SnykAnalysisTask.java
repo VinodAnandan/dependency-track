@@ -142,7 +142,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                     if (jsonResponse.getStatus() == 200) {
                         handle(jsonResponse.getBody().getObject());
                     } else {
-                        handleUnexpectedHttpResponse(LOGGER, snykUrl, jsonResponse.getStatus(), jsonResponse.getStatusText());
+                        handleUnexpectedHttpResponse(LOGGER, apiToken, jsonResponse.getStatus(), jsonResponse.getStatusText());
                     }
                 } catch (UnirestException e) {
                     handleRequestException(LOGGER, e);
