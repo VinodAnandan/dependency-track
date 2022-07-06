@@ -39,6 +39,7 @@ import org.dependencytrack.persistence.QueryManager;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -226,7 +227,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
 
                                     JSONArray ranges = vulnAttributes.optJSONArray("vulnerable_range");
                                     if (ranges != null) {
-                                        vsList.add(parseVersionRanges(qm, purl));
+                                        vsList = parseVersionRanges(qm, purl, ranges);
                                     }
                                 }
                                 LOGGER.debug("Updating vulnerable software for Snyk vulnerability: " + vulnerability.getVulnId());
@@ -243,9 +244,9 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
         }
     }
 
-    // POC: one vulnerability mapped to one vulnerable software based on its version.
-    private VulnerableSoftware parseVersionRanges(final QueryManager qm, final String purl) {
+    public List<VulnerableSoftware> parseVersionRanges(final QueryManager qm, final String purl, final JSONArray ranges) {
 
+        List<VulnerableSoftware> vulnerableSoftwares = new ArrayList<>();
         if (purl == null) {
             LOGGER.debug("No PURL provided - skipping");
             return null;
@@ -259,51 +260,48 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
             return null;
         }
 
-        String versionStartIncluding = packageURL.getVersion();
-        String versionStartExcluding = null;
-        String versionEndIncluding = packageURL.getVersion();
-        String versionEndExcluding = null;
+        for (int i = 0; i < ranges.length(); i++) {
 
-//        for (int i=0; i<ranges.length(); i++) {
-//
-//            String range = ranges.optString(i);
-//            String versionStartIncluding = null;
-//            String versionStartExcluding = null;
-//            String versionEndIncluding = null;
-//            String versionEndExcluding = null;
-//
-//            final String[] parts = Arrays.stream(range.split(",")).map(String::trim).toArray(String[]::new);
-//            for (String part: parts) {
-//                if (part.startsWith(">=")) {
-//                    versionStartIncluding = part.replace(">=", "").trim();
-//                } else if (part.startsWith(">")) {
-//                    versionStartExcluding = part.replace(">", "").trim();
-//                } else if (part.startsWith("<=")) {
-//                    versionEndIncluding = part.replace("<=", "").trim();
-//                } else if (part.startsWith("<")) {
-//                    versionEndExcluding = part.replace("<", "").trim();
-//                } else if (part.startsWith("=")) {
-//                    versionStartIncluding = part.replace("=", "").trim();
-//                    versionEndIncluding = part.replace("=", "").trim();
-//                } else {
-//                    LOGGER.warn("Unable to determine version range " + part);
-//                }
-//            }
+            String range = ranges.optString(i);
+            String versionStartIncluding = null;
+            String versionStartExcluding = null;
+            String versionEndIncluding = null;
+            String versionEndExcluding = null;
 
-        VulnerableSoftware vs = qm.getVulnerableSoftwareByPurl(packageURL.getType(), packageURL.getNamespace(), packageURL.getName(),
-                versionEndExcluding, versionEndIncluding, versionStartExcluding, versionStartIncluding);
-        if (vs == null) {
-            vs = new VulnerableSoftware();
-            vs.setVulnerable(true);
-            vs.setPurlType(packageURL.getType());
-            vs.setPurlNamespace(packageURL.getNamespace());
-            vs.setPurlName(packageURL.getName());
-            vs.setVersion(packageURL.getVersion());
-            vs.setVersionStartIncluding(versionStartIncluding);
-            vs.setVersionStartExcluding(versionStartExcluding);
-            vs.setVersionEndIncluding(versionEndIncluding);
-            vs.setVersionEndExcluding(versionEndExcluding);
+            final String[] parts = Arrays.stream(range.split(",")).map(String::trim).toArray(String[]::new);
+            for (String part : parts) {
+                if (part.startsWith(">=") || part.startsWith("[")) {
+                    versionStartIncluding = part.replace(">=", "").replace("[", "").trim();
+                } else if (part.startsWith(">") || part.startsWith("(")) {
+                    versionStartExcluding = part.replace(">", "").replace("(", "").trim();
+                } else if (part.startsWith("<=") || part.endsWith("]")) {
+                    versionEndIncluding = part.replace("<=", "").replace("]", "").trim();
+                } else if (part.startsWith("<") || part.endsWith(")")) {
+                    versionEndExcluding = part.replace("<", "").replace(")", "").trim();
+                } else if (part.startsWith("=")) {
+                    versionStartIncluding = part.replace("=", "").trim();
+                    versionEndIncluding = part.replace("=", "").trim();
+                } else {
+                    LOGGER.warn("Unable to determine version range " + part);
+                }
+            }
+
+            VulnerableSoftware vs = qm.getVulnerableSoftwareByPurl(packageURL.getType(), packageURL.getNamespace(), packageURL.getName(),
+                    versionEndExcluding, versionEndIncluding, versionStartExcluding, versionStartIncluding);
+            if (vs == null) {
+                vs = new VulnerableSoftware();
+                vs.setVulnerable(true);
+                vs.setPurlType(packageURL.getType());
+                vs.setPurlNamespace(packageURL.getNamespace());
+                vs.setPurlName(packageURL.getName());
+                vs.setVersion(packageURL.getVersion());
+                vs.setVersionStartIncluding(versionStartIncluding);
+                vs.setVersionStartExcluding(versionStartExcluding);
+                vs.setVersionEndIncluding(versionEndIncluding);
+                vs.setVersionEndExcluding(versionEndExcluding);
+            }
+            vulnerableSoftwares.add(vs);
         }
-        return vs;
+        return vulnerableSoftwares;
     }
 }
