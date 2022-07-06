@@ -171,7 +171,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                 if (links != null) {
                                     final StringBuilder sb = new StringBuilder();
                                     for (int j = 0; j < links.length(); j++) {
-                                        final JSONObject link = links.getJSONObject(i);
+                                        final JSONObject link = links.getJSONObject(j);
                                         String reference = link.optString("href", null);
                                         if (reference != null) {
                                             sb.append("* [").append(reference).append("](").append(reference).append(")\n");
