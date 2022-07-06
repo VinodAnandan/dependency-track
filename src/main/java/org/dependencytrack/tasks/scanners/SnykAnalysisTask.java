@@ -39,7 +39,6 @@ import org.dependencytrack.persistence.QueryManager;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -86,7 +85,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
             }
             final SnykAnalysisEvent event = (SnykAnalysisEvent) e;
             LOGGER.info("Starting Snyk vulnerability analysis task");
-            if (event.getComponents().size() > 0) {
+            if (!event.getComponents().isEmpty()) {
                 analyze(event.getComponents());
             }
             LOGGER.info("Snyk vulnerability analysis complete");
@@ -173,8 +172,9 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                     final StringBuilder sb = new StringBuilder();
                                     for (int j = 0; j < links.length(); j++) {
                                         final JSONObject link = links.getJSONObject(i);
-                                        String reference = link.optString("href");
-                                        sb.append("* [").append(reference).append("](").append(reference).append(")\n");
+                                        String reference = link.optString("href", null);
+                                        if (reference != null)
+                                            sb.append("* [").append(reference).append("](").append(reference).append(")\n");
                                     }
                                     vulnerability.setReferences(sb.toString());
                                 }
