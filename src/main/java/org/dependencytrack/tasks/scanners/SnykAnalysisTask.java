@@ -85,7 +85,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
             }
             final SnykAnalysisEvent event = (SnykAnalysisEvent) e;
             LOGGER.info("Starting Snyk vulnerability analysis task");
-            if (!event.getComponents().isEmpty()) {
+            if (event.getComponents().size() > 0) {
                 analyze(event.getComponents());
             }
             LOGGER.info("Snyk vulnerability analysis complete");
@@ -173,8 +173,9 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                     for (int j = 0; j < links.length(); j++) {
                                         final JSONObject link = links.getJSONObject(i);
                                         String reference = link.optString("href", null);
-                                        if (reference != null)
+                                        if (reference != null) {
                                             sb.append("* [").append(reference).append("](").append(reference).append(")\n");
+                                        }
                                     }
                                     vulnerability.setReferences(sb.toString());
                                 }
