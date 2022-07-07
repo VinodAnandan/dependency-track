@@ -126,7 +126,9 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
         while (!paginatedComponents.isPaginationComplete()) {
             final List<Component> paginatedList = paginatedComponents.getPaginatedList();
             for (final Component component: paginatedList) {
-                try {
+                try (QueryManager qm = new QueryManager()) {
+//                    final Component componentExisting = qm.getObjectByUuid(Component.class, component.getUuid()); // Refresh component and attach to current pm.
+//                    if (componentExisting == null) continue;
                     final UnirestInstance ui = UnirestFactory.getUnirestInstance();
                     final String snykUrl = API_BASE_URL + parsePurlToSnykUrlParam(component.getPurl()) + API_ENDPOINT;
                     final GetRequest request = ui.get(snykUrl)
@@ -234,8 +236,10 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                 qm.persist(vsList);
                                 Vulnerability synchronizedVulnerability = qm.synchronizeVulnerability(vulnerability, false);
                                 synchronizedVulnerability.setVulnerableSoftware(new ArrayList<>(vsList));
-                                qm.addVulnerability(synchronizedVulnerability, component, this.getAnalyzerIdentity());
+//                                qm.addVulnerability(synchronizedVulnerability, component, this.getAnalyzerIdentity());
                                 qm.persist(synchronizedVulnerability);
+                                qm.persist(new FindingAttribution(component, vulnerability, this.getAnalyzerIdentity(), null, null));
+
                             }
                             Event.dispatch(new IndexEvent(IndexEvent.Action.COMMIT, Vulnerability.class));
                         }
