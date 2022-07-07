@@ -133,7 +133,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                             .header(HttpHeaders.AUTHORIZATION, apiToken);
                     final HttpResponse<JsonNode> jsonResponse = request.asJson();
                     if (jsonResponse.getStatus() == 200) {
-                        handle(jsonResponse.getBody().getObject());
+                        handle(component, jsonResponse.getBody().getObject());
                     } else {
                         handleUnexpectedHttpResponse(LOGGER, API_BASE_URL, jsonResponse.getStatus(), jsonResponse.getStatusText());
                     }
@@ -145,7 +145,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
         }
     }
 
-    private void handle(JSONObject object) {
+    private void handle(Component component, JSONObject object) {
 
         try (QueryManager qm = new QueryManager()) {
 
@@ -234,6 +234,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                 qm.persist(vsList);
                                 Vulnerability synchronizedVulnerability = qm.synchronizeVulnerability(vulnerability, false);
                                 synchronizedVulnerability.setVulnerableSoftware(new ArrayList<>(vsList));
+                                qm.addVulnerability(synchronizedVulnerability, component, this.getAnalyzerIdentity());
                                 qm.persist(synchronizedVulnerability);
                             }
                             Event.dispatch(new IndexEvent(IndexEvent.Action.COMMIT, Vulnerability.class));
