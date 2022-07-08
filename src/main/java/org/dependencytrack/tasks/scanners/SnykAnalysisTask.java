@@ -235,8 +235,12 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                 Vulnerability synchronizedVulnerability = qm.synchronizeVulnerability(vulnerability, false);
                                 synchronizedVulnerability.setVulnerableSoftware(new ArrayList<>(vsList));
                                 qm.persist(synchronizedVulnerability);
-                                qm.addVulnerability(synchronizedVulnerability, component, this.getAnalyzerIdentity());
-                                LOGGER.info("Snyk vulnerability added : " + synchronizedVulnerability.getVulnId() + " to component " + component.getName());
+
+                                final Component componentPersisted = qm.getObjectByUuid(Component.class, component.getUuid());
+                                if (componentPersisted != null) {
+                                    qm.addVulnerability(synchronizedVulnerability, componentPersisted, this.getAnalyzerIdentity());
+                                    LOGGER.info("Snyk vulnerability added : " + synchronizedVulnerability.getVulnId() + " to component " + component.getName());
+                                }
                             }
                             Event.dispatch(new IndexEvent(IndexEvent.Action.COMMIT, Vulnerability.class));
                         }
