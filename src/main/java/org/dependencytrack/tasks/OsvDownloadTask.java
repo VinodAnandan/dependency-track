@@ -28,10 +28,9 @@ import org.dependencytrack.persistence.QueryManager;
 import us.springett.cvss.Cvss;
 import us.springett.cvss.Score;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -63,20 +62,27 @@ public class OsvDownloadTask implements LoggableSubscriber {
 
             for (Ecosystem ecosystem : Ecosystem.values()) {
                 LOGGER.info("Updating datasource with Google OSV advisories for ecosystem " + ecosystem.getValue());
-                String url = "https://osv-vulnerabilities.storage.googleapis.com/" + ecosystem.getValue() + "/all.zip";
-                request = new HttpGet(url);
-                try (final CloseableHttpResponse response = HttpClientPool.getClient().execute(request)) {
-                    final StatusLine status = response.getStatusLine();
-                    if (status.getStatusCode() == 200) {
-                        try (InputStream in = response.getEntity().getContent();
-                            ZipInputStream zipInput = new ZipInputStream(in)) {
-                            unzipFolder(zipInput);
+                String url = null;
+                try {
+                    url = "https://osv-vulnerabilities.storage.googleapis.com/"
+                            + URLEncoder.encode(ecosystem.getValue(), StandardCharsets.UTF_8.toString())
+                            + "/all.zip";
+                    request = new HttpGet(url);
+                    try (final CloseableHttpResponse response = HttpClientPool.getClient().execute(request)) {
+                        final StatusLine status = response.getStatusLine();
+                        if (status.getStatusCode() == 200) {
+                            try (InputStream in = response.getEntity().getContent();
+                                 ZipInputStream zipInput = new ZipInputStream(in)) {
+                                unzipFolder(zipInput);
+                            }
+                        } else {
+                            LOGGER.error("Download failed : " + status.getStatusCode() + ": " + status.getReasonPhrase());
                         }
-                    } else {
-                        LOGGER.error("Download failed : " + status.getStatusCode() + ": " + status.getReasonPhrase());
+                    } catch (Exception ex) {
+                        LOGGER.error("Exception while executing Http client request", ex);
                     }
-                } catch (Exception ex) {
-                    LOGGER.error("Exception while executing Http client request", ex);
+                } catch (UnsupportedEncodingException ex) {
+                    LOGGER.error("Exception while encoding URL for ecosystem " + ecosystem.getValue());
                 }
             }
         }
