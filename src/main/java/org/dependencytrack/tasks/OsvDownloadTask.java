@@ -62,10 +62,9 @@ public class OsvDownloadTask implements LoggableSubscriber {
 
             for (Ecosystem ecosystem : Ecosystem.values()) {
                 LOGGER.info("Updating datasource with Google OSV advisories for ecosystem " + ecosystem.getValue());
-                String url = null;
                 try {
-                    url = "https://osv-vulnerabilities.storage.googleapis.com/"
-                            + URLEncoder.encode(ecosystem.getValue(), StandardCharsets.UTF_8.toString())
+                    String url = "https://osv-vulnerabilities.storage.googleapis.com/"
+                            + URLEncoder.encode(ecosystem.getValue(), StandardCharsets.UTF_8.toString()).replace("+", "%20")
                             + "/all.zip";
                     request = new HttpGet(url);
                     try (final CloseableHttpResponse response = HttpClientPool.getClient().execute(request)) {
