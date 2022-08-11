@@ -28,7 +28,11 @@ import org.dependencytrack.persistence.QueryManager;
 import us.springett.cvss.Cvss;
 import us.springett.cvss.Score;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -45,6 +49,8 @@ import static org.dependencytrack.util.VulnerabilityUtil.*;
 public class OsvDownloadTask implements LoggableSubscriber {
 
     private static final Logger LOGGER = Logger.getLogger(OsvDownloadTask.class);
+
+    private static final String OSV_BASE_URL = "https://osv-vulnerabilities.storage.googleapis.com/";
     private final boolean isEnabled;
     private HttpUriRequest request;
 

@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v3.0.2
 
       - name: Set up JDK
-        uses: actions/setup-java@v3.4.0
+        uses: actions/setup-java@v3.4.1
         with:
           distribution: 'temurin'
           java-version: '11'
@@ -79,7 +79,7 @@ jobs:
           password: ${{ secrets.registry-0-psw }}
 
       - name: Build multi-arch Container Image
-        uses: docker/build-push-action@v3.0.0
+        uses: docker/build-push-action@v3.1.1
         with:
           tags: |-
             docker.io/sahibamittal/${{ matrix.distribution }}:${{ inputs.app-version }}
@@ -92,3 +92,19 @@ jobs:
           push: ${{ github.ref == 'refs/heads/snyk-integration' }}
           context: .
           file: src/main/docker/Dockerfile
+
+      - name: Run Trivy Vulnerability Scanner
+        if: ${{ inputs.publish-container }}
+        uses: aquasecurity/trivy-action@0.6.2
+        with:
+          image-ref: docker.io/dependencytrack/${{ matrix.distribution }}:${{ inputs.app-version }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          ignore-unfixed: true
+          vuln-type: 'os'
+
+      - name: Upload Trivy Scan Results to GitHub Security Tab
+        if: ${{ inputs.publish-container }}
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'

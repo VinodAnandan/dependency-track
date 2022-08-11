@@ -18,23 +18,15 @@
  */
 package org.dependencytrack.util;
 
+import alpine.model.ConfigProperty;
 import alpine.notification.Notification;
 import alpine.notification.NotificationLevel;
-import org.dependencytrack.model.Analysis;
-import org.dependencytrack.model.Component;
-import org.dependencytrack.model.ComponentIdentity;
-import org.dependencytrack.model.Cwe;
-import org.dependencytrack.model.Policy;
-import org.dependencytrack.model.PolicyCondition;
-import org.dependencytrack.model.PolicyViolation;
-import org.dependencytrack.model.Project;
-import org.dependencytrack.model.Tag;
-import org.dependencytrack.model.ViolationAnalysis;
-import org.dependencytrack.model.ViolationAnalysisState;
-import org.dependencytrack.model.Vulnerability;
+import org.apache.commons.io.FileUtils;
+import org.dependencytrack.model.*;
 import org.dependencytrack.notification.NotificationConstants;
 import org.dependencytrack.notification.NotificationGroup;
 import org.dependencytrack.notification.NotificationScope;
+import org.dependencytrack.notification.publisher.DefaultNotificationPublishers;
 import org.dependencytrack.notification.vo.AnalysisDecisionChange;
 import org.dependencytrack.notification.vo.BomConsumedOrProcessed;
 import org.dependencytrack.notification.vo.NewVulnerabilityIdentified;
@@ -51,9 +43,18 @@ import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public final class NotificationUtil {
 
@@ -67,10 +68,12 @@ public final class NotificationUtil {
             // Component did not previously contain this vulnerability. It could be a newly discovered vulnerability
             // against an existing component, or it could be a newly added (and vulnerable) component. Either way,
             // it warrants a Notification be dispatched.
-            final Set<Project> affectedProjects = new HashSet<>();
+            final Map<Long,Project> affectedProjects = new HashMap<>();
             final List<Component> components = qm.matchIdentity(new ComponentIdentity(component));
             for (final Component c : components) {
-                affectedProjects.add(qm.detach(Project.class, c.getProject().getId()));
+                if(!affectedProjects.containsKey(c.getProject().getId())) {
+                    affectedProjects.put(c.getProject().getId(), qm.detach(Project.class, c.getProject().getId()));
+                }
             }
 
             final Vulnerability detachedVuln =  qm.detach(Vulnerability.class, vulnerability.getId());
@@ -82,7 +85,7 @@ public final class NotificationUtil {
                     .title(NotificationConstants.Title.NEW_VULNERABILITY)
                     .level(NotificationLevel.INFORMATIONAL)
                     .content(generateNotificationContent(detachedVuln))
-                    .subject(new NewVulnerabilityIdentified(detachedVuln, detachedComponent, affectedProjects))
+                    .subject(new NewVulnerabilityIdentified(detachedVuln, detachedComponent, new HashSet<>(affectedProjects.values())))
             );
         }
     }
@@ -139,6 +142,9 @@ public final class NotificationUtil {
                         break;
                     case NOT_SET:
                         title = NotificationConstants.Title.ANALYSIS_DECISION_NOT_SET;
+                        break;
+                    case RESOLVED:
+                        title = NotificationConstants.Title.ANALYSIS_DECISION_RESOLVED;
                         break;
                 }
             } else if (suppressionChange) {
@@ -429,6 +435,39 @@ public final class NotificationUtil {
         builder.add("name", policy.getName());
         builder.add("violationState", policy.getViolationState().name());
         return builder.build();
+    }
+
+    public static void loadDefaultNotificationPublishers(QueryManager qm) throws IOException {
+        for (final DefaultNotificationPublishers publisher : DefaultNotificationPublishers.values()) {
+            File templateFile = new File(URLDecoder.decode(NotificationUtil.class.getResource(publisher.getPublisherTemplateFile()).getFile(), UTF_8.name()));
+            if (qm.isEnabled(ConfigPropertyConstants.NOTIFICATION_TEMPLATE_DEFAULT_OVERRIDE_ENABLED)) {
+                ConfigProperty templateBaseDir = qm.getConfigProperty(
+                        ConfigPropertyConstants.NOTIFICATION_TEMPLATE_BASE_DIR.getGroupName(),
+                        ConfigPropertyConstants.NOTIFICATION_TEMPLATE_BASE_DIR.getPropertyName()
+                );
+                File userProvidedTemplateFile = new File(Path.of(templateBaseDir.getPropertyValue(), publisher.getPublisherTemplateFile()).toUri());
+                if (userProvidedTemplateFile.exists()) {
+                    templateFile = userProvidedTemplateFile;
+                }
+            }
+            final String templateContent = FileUtils.readFileToString(templateFile, UTF_8);
+            final NotificationPublisher existingPublisher = qm.getDefaultNotificationPublisher(publisher.getPublisherClass());
+            if (existingPublisher == null) {
+                qm.createNotificationPublisher(
+                        publisher.getPublisherName(), publisher.getPublisherDescription(),
+                        publisher.getPublisherClass(), templateContent, publisher.getTemplateMimeType(),
+                        publisher.isDefaultPublisher()
+                );
+            } else {
+                existingPublisher.setName(publisher.getPublisherName());
+                existingPublisher.setDescription(publisher.getPublisherDescription());
+                existingPublisher.setPublisherClass(publisher.getPublisherClass().getCanonicalName());
+                existingPublisher.setTemplate(templateContent);
+                existingPublisher.setTemplateMimeType(publisher.getTemplateMimeType());
+                existingPublisher.setDefaultPublisher(publisher.isDefaultPublisher());
+                qm.updateNotificationPublisher(existingPublisher);
+            }
+        }
     }
 
     private static String generateNotificationContent(final Vulnerability vulnerability) {

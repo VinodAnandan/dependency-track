@@ -513,6 +513,10 @@ public class QueryManager extends AlpineQueryManager {
         return getPolicyQueryManager().createPolicy(name, operator, violationState);
     }
 
+    public void removeProjectFromPolicies(final Project project) {
+        getPolicyQueryManager().removeProjectFromPolicies(project);
+    }
+
     public PolicyCondition createPolicyCondition(final Policy policy, final PolicyCondition.Subject subject,
                                                  final PolicyCondition.Operator operator, final String value) {
         return getPolicyQueryManager().createPolicyCondition(policy, subject, operator, value);
@@ -1026,7 +1030,7 @@ public class QueryManager extends AlpineQueryManager {
         return getNotificationQueryManager().getNotificationPublisher(name);
     }
 
-    NotificationPublisher getDefaultNotificationPublisher(final Class<Publisher> clazz) {
+    public NotificationPublisher getDefaultNotificationPublisher(final Class<Publisher> clazz) {
         return getNotificationQueryManager().getDefaultNotificationPublisher(clazz);
     }
 
@@ -1036,8 +1040,12 @@ public class QueryManager extends AlpineQueryManager {
         return getNotificationQueryManager().createNotificationPublisher(name, description, publisherClass, templateContent, templateMimeType, defaultPublisher);
     }
 
-    NotificationPublisher updateNotificationPublisher(NotificationPublisher transientPublisher) {
+    public NotificationPublisher updateNotificationPublisher(NotificationPublisher transientPublisher) {
         return getNotificationQueryManager().updateNotificationPublisher(transientPublisher);
+    }
+
+    public void deleteNotificationPublisher(NotificationPublisher notificationPublisher) {
+        getNotificationQueryManager().deleteNotificationPublisher(notificationPublisher);
     }
 
     public void removeProjectFromNotificationRules(final Project project) {
