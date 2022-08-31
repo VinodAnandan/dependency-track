@@ -3,14 +3,14 @@ name: Build CI
 on:
   push:
     branches:
-      - 'snyk-integration'          # Default branch
+      - 'feature/snyk-api-version2-integration'          # Default branch
       - '[0-9]+.[0-9]+.x' # Release branches
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
   pull_request:
     branches:
-      - 'snyk-integration'          # Default branch
+      - 'feature/snyk-api-version2-integration'          # Default branch
     paths-ignore:
       - '**/*.md'
       - 'docs/**'

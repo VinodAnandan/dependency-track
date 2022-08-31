@@ -89,13 +89,13 @@ jobs:
             COMMIT_SHA=${{ github.sha }}
             WAR_FILENAME=dependency-track-${{ matrix.distribution }}.jar
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.ref == 'refs/heads/snyk-integration' }}
+          push: ${{ github.ref == 'refs/heads/feature/snyk-api-version2-integration' }}
           context: .
           file: src/main/docker/Dockerfile
 
       - name: Run Trivy Vulnerability Scanner
         if: ${{ inputs.publish-container }}
-        uses: aquasecurity/trivy-action@0.6.2
+        uses: aquasecurity/trivy-action@0.7.1
         with:
           image-ref: docker.io/dependencytrack/${{ matrix.distribution }}:${{ inputs.app-version }}
           format: 'sarif'

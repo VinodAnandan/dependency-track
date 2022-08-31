@@ -31,6 +31,7 @@ import org.dependencytrack.tasks.DefectDojoUploadTask;
 import org.dependencytrack.tasks.EpssMirrorTask;
 import org.dependencytrack.tasks.FortifySscUploadTask;
 import org.dependencytrack.tasks.GitHubAdvisoryMirrorTask;
+import org.dependencytrack.tasks.NewVulnerableDependencyAnalysisTask;
 import org.dependencytrack.tasks.OsvDownloadTask;
 import org.dependencytrack.tasks.IndexTask;
 import org.dependencytrack.tasks.InternalComponentIdentificationTask;
@@ -96,6 +97,7 @@ public class EventSubsystemInitializer implements ServletContextListener {
         EVENT_SERVICE.subscribe(InternalComponentIdentificationEvent.class, InternalComponentIdentificationTask.class);
         EVENT_SERVICE.subscribe(ClearComponentAnalysisCacheEvent.class, ClearComponentAnalysisCacheTask.class);
         EVENT_SERVICE.subscribe(SnykAnalysisEvent.class, SnykAnalysisTask.class);
+        EVENT_SERVICE.subscribe(NewVulnerableDependencyAnalysisEvent.class, NewVulnerableDependencyAnalysisTask.class);
 
         EVENT_SERVICE_ST.subscribe(IndexEvent.class, IndexTask.class);
         EVENT_SERVICE_ST.subscribe(NistMirrorEvent.class, NistMirrorTask.class);
@@ -130,6 +132,7 @@ public class EventSubsystemInitializer implements ServletContextListener {
         EVENT_SERVICE.unsubscribe(KennaSecurityUploadTask.class);
         EVENT_SERVICE.unsubscribe(InternalComponentIdentificationTask.class);
         EVENT_SERVICE.unsubscribe(SnykAnalysisTask.class);
+        EVENT_SERVICE.unsubscribe(NewVulnerableDependencyAnalysisTask.class);
         EVENT_SERVICE.shutdown();
 
         EVENT_SERVICE_ST.unsubscribe(IndexTask.class);
