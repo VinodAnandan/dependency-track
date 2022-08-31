@@ -161,8 +161,6 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
             final JSONArray data = object.optJSONArray("data");
             if (data != null) {
                 for (int count = 0; count < data.length(); count++) {
-                    LOGGER.debug("New data element here--------------------------");
-                    LOGGER.debug(data.optJSONObject(count).toString());
                     Vulnerability vulnerability = new Vulnerability();
                     List<VulnerableSoftware> vsList = new ArrayList<>();
                     vulnerability.setSource(Vulnerability.Source.SNYK);
@@ -171,11 +169,9 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                     final JSONObject vulnAttributes = data.optJSONObject(count).optJSONObject("attributes");
                     if (vulnAttributes != null) {
                         if (vulnAttributes.optString("type").equalsIgnoreCase("package_vulnerability")) {
-                            LOGGER.debug("Inside package vulnerability check");
                             // get the references of the data record (vulnerability)
                             final JSONObject slots = vulnAttributes.optJSONObject("slots");
                             if(slots!=null) {
-                                LOGGER.debug("FOund slots. Now checking for references");
                                 final JSONArray links = slots.optJSONArray("references");
                                 if (links != null) {
                                     final StringBuilder sb = new StringBuilder();
@@ -237,7 +233,6 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                     vsList = parseVersionRanges(qm, purl, representation);
                                 }
                             }
-                            LOGGER.debug("Updating vulnerable software for Snyk vulnerability: " + vulnerability.getVulnId());
                             qm.persist(vsList);
                             Vulnerability synchronizedVulnerability = qm.synchronizeVulnerability(vulnerability, false);
                             synchronizedVulnerability.setVulnerableSoftware(new ArrayList<>(vsList));
