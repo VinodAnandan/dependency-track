@@ -89,7 +89,7 @@ jobs:
             COMMIT_SHA=${{ github.sha }}
             WAR_FILENAME=dependency-track-${{ matrix.distribution }}.jar
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.ref == 'refs/heads/snyk-api-version2-integration' }}
+          push: ${{ github.ref == 'refs/heads/feature/snyk-api-version2-integration' }}
           context: .
           file: src/main/docker/Dockerfile
 
