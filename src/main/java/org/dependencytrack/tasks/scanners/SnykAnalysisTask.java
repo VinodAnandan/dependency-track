@@ -149,107 +149,6 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
     private void handle(Component component, JSONObject object) {
 
         try (QueryManager qm = new QueryManager()) {
-
-//            final JSONObject data = object.optJSONObject("data");
-//            if (data != null) {
-//                final JSONObject attributes = data.optJSONObject("attributes");
-//                if (attributes != null) {
-//
-//                    String purl = attributes.optString("purl", null);
-//
-//                    final JSONArray vulnerabilities = attributes.optJSONArray("vulnerabilities");
-//                    if (vulnerabilities != null) {
-//                        for (int i = 0; i < vulnerabilities.length(); i++) {
-//
-//                            final JSONObject snykVuln = vulnerabilities.getJSONObject(i);
-//                            if (snykVuln != null) {
-//
-//                                Vulnerability vulnerability = new Vulnerability();
-//                                List<VulnerableSoftware> vsList = new ArrayList<>();
-//                                vulnerability.setSource(Vulnerability.Source.SNYK);
-//                                vulnerability.setVulnId(snykVuln.optString("id", null));
-//
-//                                final JSONArray links = snykVuln.optJSONArray("links");
-//                                if (links != null) {
-//                                    final StringBuilder sb = new StringBuilder();
-//                                    for (int j = 0; j < links.length(); j++) {
-//                                        final JSONObject link = links.getJSONObject(j);
-//                                        String reference = link.optString("href", null);
-//                                        if (reference != null) {
-//                                            sb.append("* [").append(reference).append("](").append(reference).append(")\n");
-//                                        }
-//                                    }
-//                                    vulnerability.setReferences(sb.toString());
-//                                }
-//
-//                                final JSONObject vulnAttributes = snykVuln.optJSONObject("attributes");
-//                                if (vulnAttributes != null) {
-//                                    vulnerability.setTitle(vulnAttributes.optString("title", null));
-//                                    vulnerability.setDescription(vulnAttributes.optString("description", null));
-//                                    vulnerability.setCreated(Date.from(jsonStringToTimestamp(vulnAttributes.optString("creation_time")).toInstant()));
-//                                    vulnerability.setPublished(Date.from(jsonStringToTimestamp(vulnAttributes.optString("publication_time")).toInstant()));
-//                                    vulnerability.setUpdated(Date.from(jsonStringToTimestamp(vulnAttributes.optString("modification_time")).toInstant()));
-//
-//                                    final JSONArray cweIds = vulnAttributes.optJSONArray("cwe_ids");
-//                                    if (cweIds != null) {
-//                                        for (int j = 0; j < cweIds.length(); j++) {
-//                                            final Cwe cwe = CweResolver.getInstance().resolve(qm, cweIds.optString(j));
-//                                            if (cwe != null) {
-//                                                vulnerability.addCwe(cwe);
-//                                            }
-//                                        }
-//                                    }
-//
-//                                    final JSONArray cvssArray = vulnAttributes.optJSONArray("cvss_details");
-//                                    if (cvssArray != null) {
-//                                        final JSONObject cvss = cvssArray.getJSONObject(0);
-//                                        if (cvss != null) {
-//                                            String severity = cvss.optString("severity", null);
-//                                            if (severity != null) {
-//                                                if (severity.equalsIgnoreCase("CRITICAL")) {
-//                                                    vulnerability.setSeverity(Severity.CRITICAL);
-//                                                } else if (severity.equalsIgnoreCase("HIGH")) {
-//                                                    vulnerability.setSeverity(Severity.HIGH);
-//                                                } else if (severity.equalsIgnoreCase("MEDIUM")) {
-//                                                    vulnerability.setSeverity(Severity.MEDIUM);
-//                                                } else if (severity.equalsIgnoreCase("LOW")) {
-//                                                    vulnerability.setSeverity(Severity.LOW);
-//                                                } else {
-//                                                    vulnerability.setSeverity(Severity.UNASSIGNED);
-//                                                }
-//                                            }
-//                                            vulnerability.setCvssV3Vector(cvss.optString("cvss_vector", null));
-//                                            final JSONObject cvssScore = cvss.optJSONObject("cvss_scores");
-//                                            if (cvssScore != null) {
-//                                                vulnerability.setCvssV3BaseScore(BigDecimal.valueOf(Double.valueOf(cvssScore.optString("base_score"))));
-//                                            }
-//                                        }
-//                                    }
-//
-//                                    JSONArray ranges = vulnAttributes.optJSONArray("vulnerable_range");
-//                                    if (ranges != null) {
-//                                        vsList = parseVersionRanges(qm, purl, ranges);
-//                                    }
-//                                }
-//                                LOGGER.debug("Updating vulnerable software for Snyk vulnerability: " + vulnerability.getVulnId());
-//                                qm.persist(vsList);
-//                                Vulnerability synchronizedVulnerability = qm.synchronizeVulnerability(vulnerability, false);
-//                                synchronizedVulnerability.setVulnerableSoftware(new ArrayList<>(vsList));
-//                                qm.persist(synchronizedVulnerability);
-//
-//                                final Component componentPersisted = qm.getObjectByUuid(Component.class, component.getUuid());
-//                                if (componentPersisted != null) {
-//                                    qm.addVulnerability(synchronizedVulnerability, componentPersisted, this.getAnalyzerIdentity());
-//                                    LOGGER.info("Snyk vulnerability added : " + synchronizedVulnerability.getVulnId() + " to component " + component.getName());
-//                                }
-//                            }
-//                            Event.dispatch(new IndexEvent(IndexEvent.Action.COMMIT, Vulnerability.class));
-//                        }
-//                    }
-//                }
-//            }
-
-
             //----------changes by meha start
             String purl = null;
             final JSONObject metaInfo = object.optJSONObject("meta");
@@ -262,26 +161,33 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
             final JSONArray data = object.optJSONArray("data");
             if (data != null) {
                 for (int count = 0; count < data.length(); count++) {
-                    final JSONObject vulnAttributes = data.optJSONObject(count).optJSONObject("attributes");
+                    LOGGER.debug("New data element here--------------------------");
+                    LOGGER.debug(data.optJSONObject(count).toString());
                     Vulnerability vulnerability = new Vulnerability();
                     List<VulnerableSoftware> vsList = new ArrayList<>();
                     vulnerability.setSource(Vulnerability.Source.SNYK);
                     // get the id of the data record (vulnerability)
                     vulnerability.setVulnId(data.optJSONObject(count).optString("id", null));
+                    final JSONObject vulnAttributes = data.optJSONObject(count).optJSONObject("attributes");
                     if (vulnAttributes != null) {
                         if (vulnAttributes.optString("type").equalsIgnoreCase("package_vulnerability")) {
+                            LOGGER.debug("Inside package vulnerability check");
                             // get the references of the data record (vulnerability)
-                            final JSONArray links = data.optJSONObject(count).optJSONObject("slots").optJSONArray("references");
-                            if (links != null) {
-                                final StringBuilder sb = new StringBuilder();
-                                for (int j = 0; j < links.length(); j++) {
-                                    final JSONObject link = links.getJSONObject(j);
-                                    String reference = link.optString("url", null);
-                                    if (reference != null) {
-                                        sb.append("* [").append(reference).append("](").append(reference).append(")\n");
+                            final JSONObject slots = vulnAttributes.optJSONObject("slots");
+                            if(slots!=null) {
+                                LOGGER.debug("FOund slots. Now checking for references");
+                                final JSONArray links = slots.optJSONArray("references");
+                                if (links != null) {
+                                    final StringBuilder sb = new StringBuilder();
+                                    for (int linkCount = 0; linkCount < links.length(); linkCount++) {
+                                        final JSONObject link = links.getJSONObject(linkCount);
+                                        String reference = link.optString("url", null);
+                                        if (reference != null) {
+                                            sb.append("* [").append(reference).append("](").append(reference).append(")\n");
+                                        }
                                     }
+                                    vulnerability.setReferences(sb.toString());
                                 }
-                                vulnerability.setReferences(sb.toString());
                             }
                             vulnerability.setTitle(vulnAttributes.optString("title", null));
                             vulnerability.setDescription(vulnAttributes.optString("description", null));
@@ -290,8 +196,8 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
 
                             final JSONArray cweIds = vulnAttributes.optJSONArray("problems");
                             if (cweIds != null) {
-                                for (int j = 0; j < cweIds.length(); j++) {
-                                    final Cwe cwe = CweResolver.getInstance().resolve(qm, cweIds.optString(j));
+                                for (int cweIdCount = 0; cweIdCount < cweIds.length(); cweIdCount++) {
+                                    final Cwe cwe = CweResolver.getInstance().resolve(qm, cweIds.optString(cweIdCount));
                                     if (cwe != null) {
                                         vulnerability.addCwe(cwe);
                                     }
