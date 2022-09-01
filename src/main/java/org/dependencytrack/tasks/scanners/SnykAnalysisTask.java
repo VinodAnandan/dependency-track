@@ -126,21 +126,22 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
         final Pageable<Component> paginatedComponents = new Pageable<>(PAGE_SIZE, components);
         while (!paginatedComponents.isPaginationComplete()) {
             final List<Component> paginatedList = paginatedComponents.getPaginatedList();
-            for (final Component component : paginatedList) {
-                try (QueryManager qm = new QueryManager()) {
-                    final UnirestInstance ui = UnirestFactory.getUnirestInstance();
-                    final String snykUrl = API_BASE_URL + parsePurlToSnykUrlParam(component.getPurl()) + API_ENDPOINT;
-                    final GetRequest request = ui.get(snykUrl)
-                            .header(HttpHeaders.AUTHORIZATION, apiToken);
-                    final HttpResponse<JsonNode> jsonResponse = request.asJson();
-                    if (jsonResponse.getStatus() == 200) {
-                        handle(component, jsonResponse.getBody().getObject());
-                    } else {
-                        handleUnexpectedHttpResponse(LOGGER, API_BASE_URL, jsonResponse.getStatus(), jsonResponse.getStatusText());
+            int countComponent = paginatedList.size();
+            //Starting with number of threads as 10
+            int numThreads = 10;
+            while (countComponent > 0) {
+                for (int i = 0; i < numThreads; i++) {
+                    final List<Component> temp = new ArrayList<>();
+                    int k = 0;
+                    while (!paginatedList.isEmpty() && k < numThreads) {
+                        temp.add(paginatedList.get(k));
+                        paginatedList.remove(k);
+                        k += 1;
                     }
-                } catch (UnirestException e) {
-                    handleRequestException(LOGGER, e);
+                    Thread analysisUtil = new Thread(new SnykAnalysisTaskUtil(temp, apiToken));
+                    analysisUtil.start();
                 }
+                countComponent -= numThreads;
             }
             paginatedComponents.nextPage();
         }
@@ -149,7 +150,6 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
     private void handle(Component component, JSONObject object) {
 
         try (QueryManager qm = new QueryManager()) {
-            //----------changes by meha start
             String purl = null;
             final JSONObject metaInfo = object.optJSONObject("meta");
             if (metaInfo != null) {
@@ -171,7 +171,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                         if (vulnAttributes.optString("type").equalsIgnoreCase("package_vulnerability")) {
                             // get the references of the data record (vulnerability)
                             final JSONObject slots = vulnAttributes.optJSONObject("slots");
-                            if(slots!=null) {
+                            if (slots != null) {
                                 final JSONArray links = slots.optJSONArray("references");
                                 if (links != null) {
                                     final StringBuilder sb = new StringBuilder();
@@ -221,7 +221,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                                     vulnerability.setCvssV3Vector(cvss.optString("vector", null));
                                     final JSONObject cvssScore = cvss.optJSONObject("score");
                                     if (cvssScore != null) {
-                                        vulnerability.setCvssV3BaseScore(BigDecimal.valueOf(Double.valueOf(cvssScore.optString("base_score"))));
+                                        vulnerability.setCvssV3BaseScore(BigDecimal.valueOf(Double.parseDouble(cvssScore.optString("base_score"))));
                                     }
                                 }
                             }
@@ -229,7 +229,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                             JSONArray coordinates = vulnAttributes.optJSONArray("coordinates");
                             if (coordinates != null) {
 
-                                for(int countCoordinates = 0;countCoordinates<coordinates.length();countCoordinates++){
+                                for (int countCoordinates = 0; countCoordinates < coordinates.length(); countCoordinates++) {
                                     JSONArray representation = coordinates.getJSONObject(countCoordinates).optJSONArray("representation");
                                     if (representation != null) {
                                         vsList = parseVersionRanges(qm, purl, representation);
@@ -238,7 +238,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                             }
                             qm.persist(vsList);
                             Vulnerability synchronizedVulnerability = qm.synchronizeVulnerability(vulnerability, false);
-                           synchronizedVulnerability.setVulnerableSoftware(vsList);
+                            synchronizedVulnerability.setVulnerableSoftware(vsList);
                             qm.persist(synchronizedVulnerability);
 
                             final Component componentPersisted = qm.getObjectByUuid(Component.class, component.getUuid());
@@ -254,7 +254,6 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
         }
     }
 
-    //-------- changes by meha end
     public List<VulnerableSoftware> parseVersionRanges(final QueryManager qm, final String purl, final JSONArray ranges) {
 
         List<VulnerableSoftware> vulnerableSoftwares = new ArrayList<>();
@@ -315,4 +314,37 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
         }
         return vulnerableSoftwares;
     }
+
+    private class SnykAnalysisTaskUtil implements Runnable {
+        private final List<Component> paginatedList;
+        private final String apiToken;
+
+        protected SnykAnalysisTaskUtil(List<Component> paginatedList, String apiToken) {
+            this.paginatedList = paginatedList;
+            this.apiToken = apiToken;
+        }
+
+        public void run() {
+            for (final Component component : this.paginatedList) {
+
+                try {
+                    final UnirestInstance ui = UnirestFactory.getUnirestInstance();
+                    final String snykUrl = API_BASE_URL + parsePurlToSnykUrlParam(component.getPurl()) + API_ENDPOINT;
+                    final GetRequest request = ui.get(snykUrl)
+                            .header(HttpHeaders.AUTHORIZATION, this.apiToken);
+                    final HttpResponse<JsonNode> jsonResponse = request.asJson();
+                    if (jsonResponse.getStatus() == 200) {
+                        handle(component, jsonResponse.getBody().getObject());
+                    } else {
+                        handleUnexpectedHttpResponse(LOGGER, API_BASE_URL, jsonResponse.getStatus(), jsonResponse.getStatusText());
+                    }
+                } catch (UnirestException e) {
+                    handleRequestException(LOGGER, e);
+                }
+            }
+
+        }
+    }
 }
+
+
