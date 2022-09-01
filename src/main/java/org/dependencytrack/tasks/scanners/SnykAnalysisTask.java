@@ -51,7 +51,7 @@ import static org.dependencytrack.util.JsonUtil.jsonStringToTimestamp;
 public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subscriber {
 
     private static final String API_BASE_URL = "https://api.snyk.io/rest/packages/";
-    private static final String API_ENDPOINT = "/issues?version=2022-04-04~experimental";
+    private static final String API_ENDPOINT = "/issues?version=2022-04-06~experimental";
     private static final Logger LOGGER = Logger.getLogger(SnykAnalysisTask.class);
     private static final int PAGE_SIZE = 100;
     private String apiToken;
@@ -228,14 +228,18 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
 
                             JSONArray coordinates = vulnAttributes.optJSONArray("coordinates");
                             if (coordinates != null) {
-                                JSONArray representation = vulnAttributes.optJSONArray("representation");
-                                if (representation != null) {
-                                    vsList = parseVersionRanges(qm, purl, representation);
+
+                                for(int countCoordinates = 0;countCoordinates<coordinates.length();countCoordinates++){
+                                    JSONArray representation = coordinates.getJSONObject(countCoordinates).optJSONArray("representation");
+                                    if (representation != null) {
+                                        vsList = parseVersionRanges(qm, purl, representation);
+                                    }
                                 }
                             }
                             qm.persist(vsList);
+                            vulnerability.setVulnerableSoftware(vsList);
                             Vulnerability synchronizedVulnerability = qm.synchronizeVulnerability(vulnerability, false);
-                            synchronizedVulnerability.setVulnerableSoftware(new ArrayList<>(vsList));
+                          // synchronizedVulnerability.setVulnerableSoftware(vsList);
                             qm.persist(synchronizedVulnerability);
 
                             final Component componentPersisted = qm.getObjectByUuid(Component.class, component.getUuid());
