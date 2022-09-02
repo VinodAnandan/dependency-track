@@ -38,6 +38,8 @@ import org.dependencytrack.parser.common.resolver.CweResolver;
 import org.dependencytrack.persistence.QueryManager;
 
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -64,6 +66,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
      * {@inheritDoc}
      */
     public void inform(final Event e) {
+        Instant start = Instant.now();
         if (e instanceof SnykAnalysisEvent) {
             if (!super.isEnabled(ConfigPropertyConstants.SCANNER_SNYK_ENABLED)) {
                 return;
@@ -87,9 +90,12 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
             final SnykAnalysisEvent event = (SnykAnalysisEvent) e;
             LOGGER.info("Starting Snyk vulnerability analysis task");
             if (event.getComponents().size() > 0) {
-                analyze(event.getComponents());
+                    analyze(event.getComponents());
             }
             LOGGER.info("Snyk vulnerability analysis complete");
+            Instant end = Instant.now();
+            Duration timeElapsed = Duration.between(start, end);
+            LOGGER.info("Time taken to complete snyk vulnerability analysis task: " + timeElapsed.toMillis() + " milliseconds");
         }
     }
 
@@ -126,22 +132,23 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
         final Pageable<Component> paginatedComponents = new Pageable<>(PAGE_SIZE, components);
         while (!paginatedComponents.isPaginationComplete()) {
             final List<Component> paginatedList = paginatedComponents.getPaginatedList();
-            int countComponent = paginatedList.size();
             //Starting with number of threads as 10
             int numThreads = 10;
-            while (countComponent > 0) {
+            LOGGER.info("Looking at page: " + paginatedComponents.getCurrentPage() + " Total components on page: " + paginatedList.size());
+            int trackComponent = 0;
+            while (trackComponent<paginatedList.size()) {
                 for (int i = 0; i < numThreads; i++) {
                     final List<Component> temp = new ArrayList<>();
                     int k = 0;
-                    while (!paginatedList.isEmpty() && k < numThreads) {
-                        temp.add(paginatedList.get(k));
-                        paginatedList.remove(k);
+                    while (trackComponent < paginatedList.size() && k < numThreads) {
+                        temp.add(paginatedList.get(trackComponent));
                         k += 1;
+                        trackComponent += 1;
                     }
                     Thread analysisUtil = new Thread(new SnykAnalysisTaskUtil(temp, apiToken));
                     analysisUtil.start();
+
                 }
-                countComponent -= numThreads;
             }
             paginatedComponents.nextPage();
         }
