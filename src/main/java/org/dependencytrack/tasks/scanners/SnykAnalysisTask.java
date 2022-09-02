@@ -26,6 +26,7 @@ import alpine.model.ConfigProperty;
 import alpine.security.crypto.DataEncryption;
 import com.github.packageurl.MalformedPackageURLException;
 import com.github.packageurl.PackageURL;
+import io.swagger.models.auth.In;
 import kong.unirest.*;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
@@ -90,7 +91,7 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
             final SnykAnalysisEvent event = (SnykAnalysisEvent) e;
             LOGGER.info("Starting Snyk vulnerability analysis task");
             if (event.getComponents().size() > 0) {
-                    analyze(event.getComponents());
+                analyze(event.getComponents());
             }
             LOGGER.info("Snyk vulnerability analysis complete");
             Instant end = Instant.now();
@@ -134,9 +135,8 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
             final List<Component> paginatedList = paginatedComponents.getPaginatedList();
             //Starting with number of threads as 10
             int numThreads = 10;
-            LOGGER.info("Looking at page: " + paginatedComponents.getCurrentPage() + " Total components on page: " + paginatedList.size());
             int trackComponent = 0;
-            while (trackComponent<paginatedList.size()) {
+            while (trackComponent < paginatedList.size()) {
                 for (int i = 0; i < numThreads; i++) {
                     final List<Component> temp = new ArrayList<>();
                     int k = 0;
@@ -147,7 +147,6 @@ public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subsc
                     }
                     Thread analysisUtil = new Thread(new SnykAnalysisTaskUtil(temp, apiToken));
                     analysisUtil.start();
-
                 }
             }
             paginatedComponents.nextPage();
