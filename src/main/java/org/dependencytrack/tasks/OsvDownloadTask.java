@@ -51,7 +51,7 @@ public class OsvDownloadTask implements LoggableSubscriber {
     private static final Logger LOGGER = Logger.getLogger(OsvDownloadTask.class);
 
     private static final String OSV_BASE_URL = "https://osv-vulnerabilities.storage.googleapis.com/";
-    private final boolean isEnabled;
+    private final boolean isEnabled; 
     private HttpUriRequest request;
 
     public OsvDownloadTask() {
