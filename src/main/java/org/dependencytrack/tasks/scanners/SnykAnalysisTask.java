@@ -53,7 +53,7 @@ import static org.dependencytrack.util.JsonUtil.jsonStringToTimestamp;
  */
 public class SnykAnalysisTask extends BaseComponentAnalyzerTask implements Subscriber {
 
-    private static final String API_BASE_URL = "https://api.snyk.io/rest/packages/";
+    private static final String API_BASE_URL = "https://api.snyk.io/rest/orgs/testorg-5fl/packages/";
     private static final String API_ENDPOINT = "/issues?version=2022-04-06~experimental";
     private static final Logger LOGGER = Logger.getLogger(SnykAnalysisTask.class);
     private static final int PAGE_SIZE = 100;
