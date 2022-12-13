@@ -95,7 +95,7 @@
         <lib.vulndb-data-mirror.version>1.0.0</lib.vulndb-data-mirror.version>
         <!-- JDBC Drivers -->
         <lib.jdbc-driver.mssql.version>8.4.1.jre11</lib.jdbc-driver.mssql.version>
-        <lib.jdbc-driver.mysql.version>8.0.23</lib.jdbc-driver.mysql.version>
+        <lib.jdbc-driver.mysql.version>8.0.31</lib.jdbc-driver.mysql.version>
         <lib.jdbc-driver.postgresql.version>42.2.19</lib.jdbc-driver.postgresql.version>
         <!-- Maven Plugin Properties -->
         <plugin.cyclonedx.projectType>application</plugin.cyclonedx.projectType>
@@ -435,9 +435,7 @@
                                 <phase>prepare-package</phase>
                                 <configuration>
                                     <target>
-                                        <get src="https://github.com/DependencyTrack/frontend/releases/download/${frontend.version}/frontend-dist.zip"
-                                             dest="${project.build.directory}"
-                                             verbose="true"/>
+                                        <get src="https://github.com/DependencyTrack/frontend/releases/download/${frontend.version}/frontend-dist.zip" dest="${project.build.directory}" verbose="true"/>
                                     </target>
                                 </configuration>
                                 <goals>
@@ -449,8 +447,7 @@
                                 <phase>prepare-package</phase>
                                 <configuration>
                                     <target>
-                                        <unzip src="${project.build.directory}/frontend-dist.zip"
-                                               dest="${project.build.directory}/frontend">
+                                        <unzip src="${project.build.directory}/frontend-dist.zip" dest="${project.build.directory}/frontend">
                                         </unzip>
                                     </target>
                                 </configuration>
